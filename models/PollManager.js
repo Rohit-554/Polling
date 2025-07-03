@@ -1,63 +1,85 @@
-// models/PollManager.js
 class PollManager {
   constructor() {
-    this.activePoll = null;
-    this.answers = {};
-    this.students = {};
-    this.pollHistory = [];
+    this.students = {}; 
+    this.answers = {}; 
+    this.currentPoll = null; 
   }
 
-  createPoll(question, options, duration) {
-    this.activePoll = {
-      id: Date.now(),
-      question,
-      options,
-      duration,
-      createdAt: Date.now()
-    };
-    this.answers = {};
+  addStudent(id, name) {
+    this.students[id] = name;
   }
 
-  submitAnswer(studentId, answer) {
-    this.answers[studentId] = answer;
-  }
-
-  endPoll() {
-    if (this.activePoll) {
-      this.pollHistory.push({
-        ...this.activePoll,
-        results: this.answers
-      });
-    }
-    this.activePoll = null;
-    this.answers = {};
-  }
-
-  getResults() {
-    return this.answers;
-  }
-
-  getHistory() {
-    return this.pollHistory;
-  }
-
-  addStudent(socketId, name) {
-    this.students[socketId] = name;
-  }
-
-  removeStudent(socketId) {
-    delete this.students[socketId];
-    delete this.answers[socketId];
+  removeStudent(id) {
+    delete this.students[id];
+    delete this.answers[id];
   }
 
   getStudentCount() {
     return Object.keys(this.students).length;
   }
 
+  getStudentName(id) {
+    return this.students[id];
+  }
+
+  getAllStudentNames() {
+    return Object.values(this.students);
+  }
+
+  createPoll(question, options, duration, correctAnswers) {
+    this.currentPoll = {
+      question,
+      options,
+      duration,
+      correctAnswers,
+    };
+    this.answers = {};
+  }
+
+  submitAnswer(id, answer) {
+    if (!this.students[id] || !this.currentPoll) return;
+    this.answers[id] = answer;
+  }
+
+  endPoll() {
+    this.currentPoll = null;
+    this.answers = {};
+  }
+
   getActivePoll() {
-    return this.activePoll;
+    return this.currentPoll;
+  }
+
+  getResultsByOption() {
+    if (!this.currentPoll) return {};
+
+    const resultCount = {};
+    this.currentPoll.options.forEach((opt) => {
+      resultCount[opt] = 0;
+    });
+
+    Object.values(this.answers).forEach((ans) => {
+      if (resultCount[ans] !== undefined) {
+        resultCount[ans]++;
+      }
+    });
+
+    return resultCount;
+  }
+
+  isPollActive() {
+    return !!this.currentPoll;
+  }
+
+  kickStudent(nameToKick) {
+    for (const [id, name] of Object.entries(this.students)) {
+      if (name === nameToKick) {
+        this.removeStudent(id);
+        return id;
+      }
+    }
+    return null;
   }
 }
 
-const pollManager = new PollManager();
-export default pollManager;
+export default new PollManager();

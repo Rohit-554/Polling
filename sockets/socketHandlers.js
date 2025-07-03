@@ -2,54 +2,50 @@ import pollManager from "../models/PollManager.js";
 
 export default function registerSocketHandlers(io) {
   io.on("connection", (socket) => {
-    console.log("✅ Client connected:", socket.id);
+    console.log("Client connected:", socket.id);
 
     socket.on("student-join", (name) => {
       pollManager.addStudent(socket.id, name);
-      console.log(`✅ Student joined: ${name} (${socket.id})`);
-      console.log(`Current student count: ${pollManager.getStudentCount()}`);
+      console.log(`Student joined: ${name}`);
     });
 
-    socket.on("create-poll", ({ question, options, duration }) => {
-      pollManager.createPoll(question, options, duration);
-      console.log(`🟣 Poll created: "${question}"`);
-      console.log(`Options: ${options.join(", ")}`);
-      console.log(`Duration: ${duration}s`);
+    socket.on("create-poll", ({ question, options, duration, correctAnswers }) => {
+      pollManager.createPoll(question, options, duration, correctAnswers);
       io.emit("new-poll", pollManager.getActivePoll());
 
-      // Start timer to end poll
-      console.log("⏳ Poll timer started...");
       setTimeout(() => {
         pollManager.endPoll();
         io.emit("poll-ended");
-        console.log("🔴 Poll ended automatically after timer expired.");
       }, duration * 1000);
     });
 
     socket.on("submit-answer", (answer) => {
-      pollManager.submitAnswer(socket.id, answer);
-      console.log(`✅ Answer received from ${socket.id}: ${answer}`);
+    pollManager.submitAnswer(socket.id, answer);
 
-      const currentResults = pollManager.getResults();
-      console.log(`📊 Current answers count: ${Object.keys(currentResults).length}/${pollManager.getStudentCount()}`);
+    const results = pollManager.getResultsByOption();
+    io.emit("poll-results", results);
 
-      io.emit("poll-results", currentResults);
+    const totalResponses = Object.keys(pollManager.answers).length;
+    const totalStudents = pollManager.getStudentCount();
 
-      // If all students have answered, end poll early
-      if (
-        Object.keys(currentResults).length ===
-        pollManager.getStudentCount()
-      ) {
-        pollManager.endPoll();
-        io.emit("poll-ended");
-        console.log("✅ All students answered—poll ended early.");
+    if (totalResponses === totalStudents) {
+      pollManager.endPoll();
+      io.emit("poll-ended");
+    }
+  });
+
+
+    socket.on("kick-student", (nameToKick) => {
+      const kickedId = pollManager.kickStudent(nameToKick);
+      if (kickedId) {
+        io.to(kickedId).emit("kicked");
+        console.log(`Student ${nameToKick} was kicked.`);
       }
     });
 
     socket.on("disconnect", () => {
       pollManager.removeStudent(socket.id);
-      console.log(`⚠️ Client disconnected: ${socket.id}`);
-      console.log(`Remaining students: ${pollManager.getStudentCount()}`);
+      console.log(`Disconnected: ${socket.id}`);
     });
   });
 }
