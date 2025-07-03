@@ -1,11 +1,9 @@
-// index.js
-const express = require("express");
-const http = require("http");
-const cors = require("cors");
-const { Server } = require("socket.io");
-const pollRoutes = require("./routes/pollRoutes");
-const registerSocketHandlers = require("./sockets/socketHandlers");
-
+import express from "express";
+import http from "http";
+import cors from "cors";
+import { Server } from "socket.io";
+import registerSocketHandlers from "./sockets/socketHandlers.js";
+import pollRoutes from "./routes/PollRoutes.js";
 const app = express();
 app.use(cors());
 app.use(express.json());
