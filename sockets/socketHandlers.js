@@ -20,28 +20,44 @@ export default function registerSocketHandlers(io) {
     });
 
     socket.on("submit-answer", (answer) => {
-    pollManager.submitAnswer(socket.id, answer);
+      pollManager.submitAnswer(socket.id, answer);
 
-    const results = pollManager.getResultsByOption();
-    io.emit("poll-results", results);
+      const results = pollManager.getResultsByStudent();;
+      io.emit("poll-results", results);
 
-    const totalResponses = Object.keys(pollManager.answers).length;
-    const totalStudents = pollManager.getStudentCount();
+      const totalResponses = Object.keys(pollManager.answers).length;
+      const totalStudents = pollManager.getStudentCount();
 
-    if (totalResponses === totalStudents) {
-      pollManager.endPoll();
-      io.emit("poll-ended");
-    }
-  });
-
-
-    socket.on("kick-student", (nameToKick) => {
-      const kickedId = pollManager.kickStudent(nameToKick);
-      if (kickedId) {
-        io.to(kickedId).emit("kicked");
-        console.log(`Student ${nameToKick} was kicked.`);
+      if (totalResponses === totalStudents) {
+        pollManager.endPoll();
+        io.emit("poll-ended");
       }
     });
+
+
+    socket.on("kick-student", (studentName) => {
+      const socketId = Object.entries(pollManager.students).find(
+        ([id, name]) => name === studentName
+      )?.[0];
+
+      if (socketId) {
+        pollManager.kickStudent(socketId);
+        io.to(socketId).emit("kicked");
+        io.emit("poll-results", pollManager.getResultsByStudent());
+      }
+    });
+
+    socket.on("send-message", ({ sender, text }) => {
+      const message = {
+        sender,
+        text,
+        timestamp: Date.now()
+      };
+
+      io.emit("new-message", message);
+    });
+
+
 
     socket.on("disconnect", () => {
       pollManager.removeStudent(socket.id);

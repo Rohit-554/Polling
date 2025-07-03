@@ -3,6 +3,7 @@ class PollManager {
     this.students = {}; 
     this.answers = {}; 
     this.currentPoll = null; 
+    this.kickedStudents = new Set();
   }
 
   addStudent(id, name) {
@@ -50,6 +51,16 @@ class PollManager {
     return this.currentPoll;
   }
 
+  getResultsByStudent() {
+    const results = {};
+    Object.entries(this.answers).forEach(([socketId, answer]) => {
+      const name = this.students[socketId] || "Anonymous";
+      results[name] = answer;
+    });
+    return results;
+  }
+
+
   getResultsByOption() {
     if (!this.currentPoll) return {};
 
@@ -71,14 +82,14 @@ class PollManager {
     return !!this.currentPoll;
   }
 
-  kickStudent(nameToKick) {
-    for (const [id, name] of Object.entries(this.students)) {
-      if (name === nameToKick) {
-        this.removeStudent(id);
-        return id;
-      }
-    }
-    return null;
+  kickStudent(socketId) {
+  this.kickedStudents.add(socketId);
+  delete this.students[socketId];
+  delete this.answers[socketId];
+  }
+
+  isKicked(socketId) {
+    return this.kickedStudents.has(socketId);
   }
 }
 
