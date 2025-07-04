@@ -3,7 +3,7 @@ import http from "http";
 import cors from "cors";
 import { Server } from "socket.io";
 import registerSocketHandlers from "./sockets/socketHandlers.js";
-import pollRoutes from "./routes/PollRoutes.js";
+import pollRoutes from "./routes/pollRoutes.js";
 const app = express();
 app.use(cors());
 app.use(express.json());
